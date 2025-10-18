@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PikaArt</title>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#ffe8f0;      /* وردي فاتح */
+ --card:#ffd9cc;    /* خوخي */
+ --ink:#0b0b0b;     
+ --muted:#555;
+ --accent:#ff6fb5;  
+ --accent-2:#ffd166;
+ --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+ font-family:'Almarai',sans-serif;
+ background:var(--bg);
+ color:var(--ink);
+ min-height:100vh;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 340px;gap:20px}
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:16px 12px;background:var(--card);border-radius:16px;font-weight:800;font-size:28px;letter-spacing:.5px}
+
+/* بطاقات المنتجات */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.card{
+ background:var(--card);border:1px solid rgba(0,0,0,.1);
+ border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:10px
+}
+.thumb{height:160px;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.title{font-weight:800}
+.small{color:var(--muted);font-size:12px}
+.price{background:rgba(0,0,0,.05);padding:6px 8px;border-radius:10px;font-weight:800}
+
+/* أزرار */
+.btn{cursor:pointer;border:0;border-radius:12px;padding:10px 12px;font-weight:800}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border:1px solid rgba(0,0,0,.2);color:var(--ink)}
+.btn.warn{background:#ef4444;color:#fff}
+
+/* السلة */
+aside{
+ background:var(--card);border:1px solid rgba(0,0,0,.1);
+ border-radius:16px;padding:14px;height:fit-content;position:sticky;top:20px
+}
+.cart-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.cart-item{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px dashed rgba(0,0,0,.1);border-radius:10px}
+.ci-thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#fff}
+.ci-thumb img{width:100%;height:100%;object-fit:cover}
+.ci-body{flex:1}
+.ci-actions{display:flex;gap:8px}
+
+/* المودال */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.3);z-index:50;padding:20px}
+.modal.open{display:flex}
+.modal-card{
+ width:100%;max-width:920px;display:grid;grid-template-columns:1fr 360px;gap:16px;
+ background:var(--card);border-radius:16px;border:1px solid rgba(0,0,0,.1);padding:16px;position:relative
+}
+.modal-left{background:#fff;border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:center}
+.modal-left img{width:100%;height:420px;object-fit:contain;border-radius:8px}
+.modal-right label{font-size:13px;color:var(--muted);display:block;margin-top:6px;margin-bottom:4px}
+.modal-right input,.modal-right textarea,.modal-right select{
+ width:100%;background:#ffe8f0;color:var(--ink);border:1px solid rgba(0,0,0,.1);
+ border-radius:10px;padding:8px
+}
+.modal-close{position:absolute;top:10px;left:12px;background:transparent;border:0;color:#000;font-size:22px;cursor:pointer}
+
+/* مودال الدفع */
+.checkout-card{max-width:720px;grid-template-columns:1fr}
+.bank{
+ background:rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.1);
+ padding:10px;border-radius:12px;margin-bottom:8px
+}
+.bank .iban{font-family:monospace;background:#fff;padding:6px;border-radius:8px;display:inline-block}
+
+/* فوتر */
+footer{grid-column:1/-1;text-align:center;color:var(--muted);padding:12px}
+
+@media (max-width:960px){
+ .wrap{grid-template-columns:1fr}
+ .modal-card{grid-template-columns:1fr}
+ .modal-left img{height:280px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header>PikaArt</header>
+
+ <main>
+   <section class="grid" id="gallery"></section>
+ </main>
+
+ <aside>
+   <h3>🛒 سلة المشتريات</h3>
+   <div class="small">العناصر التي تضيفها ستظهر هنا</div>
+   <div class="cart-list" id="cart-list"></div>
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+     <div>
+       <div class="small">المجموع</div>
+       <div style="font-weight:800;font-size:20px" id="cart-total">0﷼</div>
+     </div>
+     <div style="display:flex;gap:8px">
+       <button class="btn ghost" id="clear-cart">تفريغ السلة</button>
+       <button class="btn primary" id="checkout-btn">الدفع الآن</button>
+     </div>
+   </div>
+ </aside>
+
+ <footer>© PikaArt</footer>
+</div>
+
+<!-- مودال المنتج -->
+<div class="modal" id="product-modal">
+ <div class="modal-card">
+   <button class="modal-close" id="pm-close">✕</button>
+   <div class="modal-left"><img id="pm-image" alt=""></div>
+   <div class="modal-right">
+     <h2 id="pm-title" style="margin:6px 0 2px"></h2>
+     <div class="small" id="pm-cat"></div>
+     <p id="pm-desc" class="small" style="margin-top:6px"></p>
+
+     <div id="count-wrap">
+       <label id="count-label">عدد الوجوه</label>
+       <input type="number" id="pm-count" min="1" value="1">
+       <div class="small" id="pm-hint"></div>
+     </div>
+
+     <label>وصف الطلب (حر):</label>
+     <textarea id="pm-spec" rows="4" placeholder="مثال: بنت بشعر وردي ومع قطة، تعابير سعيدة..."></textarea>
+
+     <label>نوع الرسم:</label>
+     <select id="pm-style">
+       <option value="cartoon">كرتوني</option>
+       <option value="anime">أنمي</option>
+     </select>
+
+     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+       <div style="font-weight:800;font-size:18px" id="pm-price"></div>
+       <button class="btn primary" id="pm-add">أضف للسلة</button>
+     </div>
+   </div>
+ </div>
+</div>
+
+<!-- مودال الدفع -->
+<div class="modal" id="checkout-modal">
+ <div class="modal-card checkout-card">
+   <button class="modal-close" id="co-close">✕</button>
+   <h2 style="margin-top:0">إتمام الطلب</h2>
+
+   <div class="bank">
+     <div class="small">يرجى التحويل على هذا الحساب:</div>
+     <div>الاسم: <strong>نورة رياض محمد صالح الفوزان</strong></div>
+     <div>رقم الآيبان: <span class="iban">SA1480000629608010992478</span></div>
+   </div>
+
+   <div class="small" style="margin-bottom:8px">⚠️ انتبه للواتساب! سيتم التواصل عبر الواتس بعد مراجعة الطلب.</div>
+
+   <form id="checkout-form" action="https://formspree.io/f/xwpnpgjg" method="POST">
+     <label>الاسم الكامل</label>
+     <input type="text" name="name" required>
+
+     <label>رقم الهاتف</label>
+     <input type="tel" name="phone" required>
+
+     <label>البريد الإلكتروني</label>
+     <input type="email" name="email" required>
+
+     <label>رابط صورة إيصال التحويل</label>
+     <input type="url" name="receipt_link" placeholder="ألصق رابط الصورة هنا" required>
+
+     <label>ملخص الطلب</label>
+     <textarea id="order-summary" rows="5" readonly></textarea>
+
+     <input type="hidden" name="order_details" id="order_details">
+     <input type="hidden" name="order_total" id="order_total">
+
+     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+       <button type="button" class="btn ghost" id="co-cancel">إلغاء</button>
+       <button type="submit" class="btn primary">إرسال الطلب</button>
+     </div>
+   </form>
+ </div>
+</div>
+
+<script>
+// المنتجات
+const PRODUCTS = [
+ {id:'full', title:'رسم كامل', category:'cartoon', desc:'سعر الشخصية 30﷼ لكل شخصية إضافية 15﷼', image:'https://i.postimg.cc/FKb9wXDT/68-20250720141115.png'},
+ {id:'face', title:'رسم وجه', category:'cartoon', desc:'سعر الوجه 15﷼ لكل وجه إضافي 7﷼', image:'https://i.postimg.cc/Vv2QdKKP/IMG-3680.jpg'},
+ {id:'cover', title:'تصميم غلاف', category:'cover', desc:'الشخصية 35﷼ لكل شخصية إضافية 15﷼', image:'https://i.postimg.cc/jqDjdmjv/IMG-3719.png'}
+];
+
+// عناصر DOM
+const gallery   = document.getElementById('gallery');
+const modal     = document.getElementById('product-modal');
+const pmClose   = document.getElementById('pm-close');
+const pmImage   = document.getElementById('pm-image');
+const pmTitle   = document.getElementById('pm-title');
+const pmCat     = document.getElementById('pm-cat');
+const pmDesc    = document.getElementById('pm-desc');
+const pmPrice   = document.getElementById('pm-price');
+const pmCount   = document.getElementById('pm-count');
+const pmHint    = document.getElementById('pm-hint');
+const pmSpec    = document.getElementById('pm-spec');
+const pmAdd     = document.getElementById('pm-add');
+const pmStyle   = document.getElementById('pm-style');
+
+const cartListEl= document.getElementById('cart-list');
+const cartTotalEl= document.getElementById('cart-total');
+const clearCartBtn= document.getElementById('clear-cart');
+const checkoutBtn= document.getElementById('checkout-btn');
+
+const coModal   = document.getElementById('checkout-modal');
+const coClose   = document.getElementById('co-close');
+const coCancel  = document.getElementById('co-cancel');
+const coForm    = document.getElementById('checkout-form');
+const orderSummary = document.getElementById('order-summary');
+const orderDetails = document.getElementById('order_details');
+const orderTotal   = document.getElementById('order_total');
+
+let CART = {};
+let currentProductId = null;
+
+function currency(n){ return n + '﷼'; }
+
+function calculatePrice(id,count){
+ count=parseInt(count||1);
+ if(id==='face') return 15+(count-1)*7;
+ if(id==='full') return 30+(count-1)*15;
+ if(id==='cover') return 35+(count-1)*15;
+ return 0;
+}
+
+function renderGallery(){
+ gallery.innerHTML='';
+ PRODUCTS.forEach(p=>{
+   const card=document.createElement('div');
+   card.className='card';
+   card.innerHTML=`
+     <div class="thumb"><img src="${p.image}" alt="${p.title}"></div>
+     <div class="title">${p.title}</div>
+     <div class="small">${p.category==='cartoon'?'كرتوني':'غلاف'}</div>
+     <div class="price">${p.id==='face'? '15﷼ (يصل إلى 3 وجوه)': (p.id==='full'?'30﷼ +15 لكل شخصية إضافية':'35﷼ +15 لكل شخصية إضافية')}</div>
+     <button class="btn primary" data-id="${p.id}">عرض / إضافة</button>
+   `;
+   gallery.appendChild(card);
+ });
+}
+
+function openProductModal(productId){
+ const p=PRODUCTS.find(x=>x.id===productId);
+ currentProductId=productId;
+ pmImage.src=p.image;
+ pmTitle.textContent=p.title;
+ pmCat.textContent=p.category==='cartoon'?'كرتوني':'غلاف';
+ pmDesc.textContent=p.desc;
+ pmCount.value=1;
+ if(productId==='face'){pmCount.min=1; pmCount.max=3; pmHint.textContent='يمكن اختيار من 1 إلى 3 وجوه';document.getElementById('count-label').textContent='عدد الوجوه';}
+ else{pmCount.min=1; pmCount.max=10; pmHint.textContent='عدد الشخصيات في نفس اللوحة';document.getElementById('count-label').textContent='عدد الشخصيات';}
+ pmPrice.textContent=currency(calculatePrice(productId,pmCount.value));
+ pmSpec.value='';
+ pmStyle.value='cartoon';
+ modal.classList.add('open');
+}
+
+pmClose.addEventListener('click',()=>modal.classList.remove('open'));
+modal.addEventListener('click', e=>{if(e.target===modal) modal.classList.remove('open');});
+pmCount.addEventListener('input', ()=>{
+ if(currentProductId) pmPrice.textContent=currency(calculatePrice(currentProductId,pmCount.value));
+});
+
+pmAdd.addEventListener('click', ()=>{
+ const id=currentProductId;
+ if(!id) return;
+ const p=PRODUCTS.find(x=>x.id===id);
+ const count=Math.max(1,Math.min(parseInt(pmCount.value||1),id==='face'?3:999));
+ const price=calculatePrice(id,count);
+ const spec=pmSpec.value.trim();
+ const style=pmStyle.value;
+ const uid=id+'_'+Date.now();
+ CART[uid]={pid:id,title:p.title,image:p.image,count,price,spec,style};
+ renderCart();
+ modal.classList.remove('open');
+});
+
+function renderCart(){
+ cartListEl.innerHTML='';
+ let total=0;
+ const entries=Object.entries(CART);
+ if(entries.length===0){cartListEl.innerHTML=`<div class="small">السلة فارغة.</div>`;}
+ else{
+   entries.forEach(([uid,item])=>{
+     total+=item.price;
+     const row=document.createElement('div');
+     row.className='cart-item';
+     row.innerHTML=`
+       <div class="ci-thumb"><img src="${item.image}" alt=""></div>
+       <div class="ci-body">
+         <div style="font-weight:800">${item.title} <span class="small">(${item.pid==='face'?'عدد الوجوه':'عدد الشخصيات'}: ${item.count})</span></div>
+         <div class="small">مواصفات: ${item.spec?item.spec:'—'} | نوع الرسم: ${item.style}</div>
+         <div style="margin-top:4px;font-weight:800">${currency(item.price)}</div>
+       </div>
+       <div class="ci-actions">
+         <button class="btn ghost small" data-action="rm" data-id="${uid}">حذف</button>
+       </div>
+     `;
+     cartListEl.appendChild(row);
+   });
+ }
+ cartTotalEl.textContent=currency(total);
+ checkoutBtn.disabled=(entries.length===0);
+}
+
+cartListEl.addEventListener('click', e=>{
+ const btn=e.target.closest('[data-action="rm"]');
+ if(!btn) return;
+ const id=btn.getAttribute('data-id');
+ delete CART[id];
+ renderCart();
+});
+
+clearCartBtn.addEventListener('click', ()=>{CART={};renderCart();});
+gallery.addEventListener('click', e=>{const btn=e.target.closest('button[data-id]');if(!btn) return;openProductModal(btn.getAttribute('data-id'));});
+
+checkoutBtn.addEventListener('click', ()=>{
+ const items=Object.values(CART);
+ if(items.length===0) return;
+ let total=0;
+ const lines=items.map((it,idx)=>{
+   total+=it.price;
+   const label=(it.pid==='face'?'عدد الوجوه':'عدد الشخصيات');
+   return `#${idx+1} - ${it.title} | ${label}: ${it.count} | سعر: ${it.price}﷼ | وصف: ${it.spec||'—'} | نوع الرسم: ${it.style}`;
+ });
+ orderSummary.value=lines.join('\n');
+ orderDetails.value=lines.join('\n');
+ orderTotal.value=total;
+ coModal.classList.add('open');
+});
+
+coClose.addEventListener('click', ()=>coModal.classList.remove('open'));
+coCancel.addEventListener('click', ()=>coModal.classList.remove('open'));
+coModal.addEventListener('click', e=>{if(e.target===coModal) coModal.classList.remove('open');});
+
+renderGallery();
+renderCart();
+</script>
+</body>
+</html>
